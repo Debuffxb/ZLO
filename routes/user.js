@@ -1,96 +1,100 @@
-var express = require('express');
+const express = require('express');
 
-var pool = require('../lib/pool');
-var token = require('../lib/token');
+const pool = require('../lib/pool');
+const token = require('../lib/token');
 const user = require('../lib/user');
 
-var router = express.Router();
+const router = express.Router();
 
-router.get('/login', function(req,res){
-  if(!(req.query.username && req.query.password)){
+router.get('/login', function (req, res) {
+  if (!(req.query.username && req.query.password)) {
     return res.json({
-      'status': 'forbidden',
-      'info': '参数不足'
-    })
+      status: 'forbidden',
+      info: '参数不足'
+    });
   }
-  let sql = "SELECT `password`, `id` FROM `zlo_user` WHERE `username` = " + pool.escape(req.query.username);
+  let sql = 'SELECT `password`, `id` FROM `zlo_user` WHERE `username` = ' + pool.escape(req.query.username);
   pool.query(sql, (err, rows) => {
-    if(err) throw err;
-    if(!rows[0]){
+    if (err) throw err;
+    if (!rows[0]) {
       return res.json({
-        'status': 'forbidden',
-        'info': '无效用户名'
-      })
+        status: 'forbidden',
+        info: '无效用户名'
+      });
     }
-    if(rows[0].password == req.query.password){
-      let _t = token.create_token(rows[0].id);
-      sql = "UPDATE `zlo_token` SET `token`=" + pool.escape(_t) + " WHERE `id` = " + pool.escape(rows[0].id);
+    if (rows[0].password === req.query.password) {
+      const _t = token.createToken(rows[0].id);
+      sql = 'UPDATE `zlo_token` SET `token`=' + pool.escape(_t) + ' WHERE `id` = ' + pool.escape(rows[0].id);
       pool.query(sql, (err) => {
-        if(err) throw err;
+        if (err) throw err;
         res.json({
-          'status': 'success',
-          'token': _t
-        })
+          status: 'success',
+          token: _t
+        });
       });
     } else {
       res.json({
-        'status': 'forbidden',
-        'info': '密码错误'
-      })
+        status: 'forbidden',
+        info: '密码错误'
+      });
     }
   });
 });
 
-router.get('/editpassword', function(req,res){
-  let _t = req.headers['x-access-token'];
-  if(!(req.query.username && req.query.new_password && _t)){
+router.get('/editpassword', function (req, res) {
+  const _t = req.headers['x-access-token'];
+  if (!(req.query.username && req.query.new_password && _t)) {
     return res.json({
-      'status': 'forbidden',
-      'info': '参数不足'
-    })
+      status: 'forbidden',
+      info: '参数不足'
+    });
   }
-  token.verify_token(_t, (err, is_effective, id) => {
-    if(err)
+  token.verifyToken(_t, (err, isEffective, id) => {
+    if (err) {
       return res.json({
-        'status': 'forbidden',
-        'info': err.message
-      })
-    if(!is_effective)
-      return res.json({
-        'status': 'forbidden',
-        'info': '鉴权失效'
+        status: 'forbidden',
+        info: err.message
       });
-    user.update_password(id, req.query.new_password, (err, is_success) => {
-      if(err) 
+    }
+    if (!isEffective) {
       return res.json({
-        'status': 'forbidden',
-        'info': err.message
+        status: 'forbidden',
+        info: '鉴权失效'
       });
-      if(is_success){
-        token.update_token(id, (err, is_success) => {
-          if(err) 
+    }
+    user.updatePassword(id, req.query.new_password, (err, isSuccess) => {
+      if (err) {
+        return res.json({
+          status: 'forbidden',
+          info: err.message
+        });
+      }
+      if (isSuccess) {
+        token.updateToken(id, (err, isSuccess) => {
+          if (err) {
             return res.json({
-              'status': 'forbidden',
-              'info': err.message
+              status: 'forbidden',
+              info: err.message
             });
-          if(is_success){
+          }
+          if (isSuccess) {
             return res.json({
-              'status': 'success',
+              status: 'success'
             });
           }
           return res.json({
-            'status': 'forbidden',
-            'info': 'unknow error'
+            status: 'forbidden',
+            info: 'unknow error'
           });
-        })
+        });
       } else {
         return res.json({
-          'status': 'forbidden',
-          'info': 'unknow error'
+          status: 'forbidden',
+          info: 'unknow error'
         });
       }
     });
-  })
-})
+  });
+});
 
 module.exports = router;

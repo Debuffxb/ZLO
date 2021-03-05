@@ -1,21 +1,21 @@
 const express = require('express');
 const app = express();
-const router_user = require('./routes/user');
-const router_file = require('./routes/file');
+const routerUser = require('./routes/user');
+const routerFile = require('./routes/file').default;
 
-app.use('/user', router_user);
-app.use('/file', router_file);
+app.use('/user', routerUser);
+app.use('/file', routerFile);
 
-var server = app.listen(3000, () => {
+app.listen(3000, () => {
   console.log();
-})
+});
 
-var gracefulShutdown = function() {
-  process.exit()
-}
+const gracefulShutdown = function () {
+  process.exit();
+};
 
 // listen for TERM signal .e.g. kill
-process.on ('SIGTERM', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
 
 // listen for INT signal e.g. Ctrl-C
-process.on ('SIGINT', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
