@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const routerUser = require('./routes/user');
-const routerFile = require('./routes/file').default;
+const routerFile = require('./routes/file');
 
 app.use('/user', routerUser);
 app.use('/file', routerFile);
