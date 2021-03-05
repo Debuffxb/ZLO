@@ -6,7 +6,7 @@ const user = require('../lib/user');
 
 const router = express.Router();
 
-router.get('/login', function (req, res) {
+router.get('/login', async (req, res) => {
   if (!(req.query.username && req.query.password)) {
     return res.json({
       status: 'forbidden',
@@ -14,34 +14,41 @@ router.get('/login', function (req, res) {
     });
   }
   let sql = 'SELECT `password`, `id` FROM `zlo_user` WHERE `username` = ' + pool.escape(req.query.username);
-  pool.query(sql, (err, rows) => {
-    if (err) throw err;
-    if (!rows[0]) {
-      return res.json({
-        status: 'forbidden',
-        info: '无效用户名'
-      });
-    }
-    if (rows[0].password === req.query.password) {
-      const _t = token.createToken(rows[0].id);
-      sql = 'UPDATE `zlo_token` SET `token`=' + pool.escape(_t) + ' WHERE `id` = ' + pool.escape(rows[0].id);
-      pool.query(sql, (err) => {
-        if (err) throw err;
-        res.json({
-          status: 'success',
-          token: _t
-        });
-      });
-    } else {
-      res.json({
-        status: 'forbidden',
-        info: '密码错误'
-      });
-    }
+  let rows = await pool.query(sql);
+  if (rows instanceof Error) {
+    return res.json({
+      status: 'forbidden',
+      info: rows.message
+    });
+  }
+  if (!rows[0]) {
+    return res.json({
+      status: 'forbidden',
+      info: '无效用户名'
+    });
+  }
+  if (rows[0].password !== req.query.password) {
+    return res.json({
+      status: 'forbidden',
+      info: '密码错误'
+    });
+  }
+  const _t = token.createToken(rows[0].id);
+  sql = 'UPDATE `zlo_token` SET `token`=' + pool.escape(_t) + ' WHERE `id` = ' + pool.escape(rows[0].id);
+  rows = await pool.query(sql);
+  if (rows instanceof Error) {
+    return res.json({
+      status: 'forbidden',
+      info: rows.message
+    });
+  }
+  res.json({
+    status: 'success',
+    token: _t
   });
 });
 
-router.get('/editpassword', function (req, res) {
+router.get('/editpassword', async (req, res) => {
   const _t = req.headers['x-access-token'];
   if (!(req.query.username && req.query.new_password && _t)) {
     return res.json({
@@ -49,51 +56,36 @@ router.get('/editpassword', function (req, res) {
       info: '参数不足'
     });
   }
-  token.verifyToken(_t, (err, isEffective, id) => {
-    if (err) {
-      return res.json({
-        status: 'forbidden',
-        info: err.message
-      });
-    }
-    if (!isEffective) {
-      return res.json({
-        status: 'forbidden',
-        info: '鉴权失效'
-      });
-    }
-    user.updatePassword(id, req.query.new_password, (err, isSuccess) => {
-      if (err) {
-        return res.json({
-          status: 'forbidden',
-          info: err.message
-        });
-      }
-      if (isSuccess) {
-        token.updateToken(id, (err, isSuccess) => {
-          if (err) {
-            return res.json({
-              status: 'forbidden',
-              info: err.message
-            });
-          }
-          if (isSuccess) {
-            return res.json({
-              status: 'success'
-            });
-          }
-          return res.json({
-            status: 'forbidden',
-            info: 'unknow error'
-          });
-        });
-      } else {
-        return res.json({
-          status: 'forbidden',
-          info: 'unknow error'
-        });
-      }
+
+  let rows = await token.verifyToken(_t);
+  if (rows instanceof Error) {
+    return res.json({
+      status: 'forbidden',
+      info: rows.message
     });
+  }
+  if (!rows.isEffective) {
+    return res.json({
+      status: 'forbidden',
+      info: '鉴权失效'
+    });
+  }
+  rows = await user.updatePassword(rows.id, req.query.new_password);
+  if (rows instanceof Error) {
+    return res.json({
+      status: 'forbidden',
+      info: rows.message
+    });
+  }
+  rows = token.updateToken(rows.id);
+  if (rows instanceof Error) {
+    return res.json({
+      status: 'forbidden',
+      info: rows.message
+    });
+  }
+  return res.json({
+    status: 'success'
   });
 });
 
