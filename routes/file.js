@@ -34,12 +34,6 @@ router.get('/filelist', async (req, res) => {
       info: rows.message
     });
   }
-  if (!rows.isEffective) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
-    });
-  }
   rows = await file.selectFiles(rows.id, _pDir);
   if (rows instanceof Error) {
     return res.json({
@@ -74,12 +68,6 @@ router.get('/delete', async (req, res) => {
     return res.json({
       status: 'forbidden',
       info: rows.message
-    });
-  }
-  if (!rows.isEffective) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
     });
   }
 
@@ -125,12 +113,6 @@ router.get('/createdir', async (req, res) => {
       info: rows.message
     });
   }
-  if (!rows.isEffective) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
-    });
-  }
   rows = await file.createDir(rows.id, _pDir, _name);
 
   if (rows instanceof Error) {
@@ -172,12 +154,6 @@ router.post('/upload', multipart(), async (req, res) => {
     return res.json({
       status: 'forbidden',
       info: rows.message
-    });
-  }
-  if (!rows.isEffective) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
     });
   }
   const filename = _file.originalFilename;
@@ -227,12 +203,6 @@ router.get('/rename', async (req, res) => {
       info: rows.message
     });
   }
-  if (!rows.isEffective) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
-    });
-  }
 
   rows = await file.renameFile(rows.id, _newName, _id);
   if (rows instanceof Error) {
@@ -273,12 +243,6 @@ router.get('/getfile', async (req, res) => {
     return res.json({
       status: 'forbidden',
       info: rows.message
-    });
-  }
-  if (!rows.isEffective) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
     });
   }
   rows = file.getFile(_id, rows.id);

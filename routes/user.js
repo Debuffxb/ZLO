@@ -64,12 +64,6 @@ router.get('/editpassword', async (req, res) => {
       info: rows.message
     });
   }
-  if (!rows.isEffective) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
-    });
-  }
   rows = await user.updatePassword(rows.id, req.query.new_password);
   if (rows instanceof Error) {
     return res.json({
