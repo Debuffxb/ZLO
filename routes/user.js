@@ -64,14 +64,14 @@ router.get('/editpassword', async (req, res) => {
       info: rows.message
     });
   }
-  rows = await user.updatePassword(rows.id, req.query.new_password);
+  rows = await user.updatePassword(rows, req.query.new_password);
   if (rows instanceof Error) {
     return res.json({
       status: 'forbidden',
       info: rows.message
     });
   }
-  rows = token.updateToken(rows.id);
+  rows = token.updateToken(rows);
   if (rows instanceof Error) {
     return res.json({
       status: 'forbidden',

@@ -34,7 +34,7 @@ router.get('/filelist', async (req, res) => {
       info: rows.message
     });
   }
-  rows = await file.selectFiles(rows.id, _pDir);
+  rows = await file.selectFiles(rows, _pDir);
   if (rows instanceof Error) {
     return res.json({
       status: 'forbidden',
@@ -71,7 +71,7 @@ router.get('/delete', async (req, res) => {
     });
   }
 
-  rows = await file.deleteFile(rows.id, _id);
+  rows = await file.deleteFile(rows, _id);
   if (rows instanceof Error) {
     return res.json({
       status: 'forbidden',
@@ -113,7 +113,7 @@ router.get('/createdir', async (req, res) => {
       info: rows.message
     });
   }
-  rows = await file.createDir(rows.id, _pDir, _name);
+  rows = await file.createDir(rows, _pDir, _name);
 
   if (rows instanceof Error) {
     return res.json({
@@ -159,7 +159,7 @@ router.post('/upload', multipart(), async (req, res) => {
   const filename = _file.originalFilename;
   const saveFilename = rows.id + '-' + Date.now() + '-' + getString(10) + filename.substring(filename.lastIndexOf('.'));
   fs.renameSync(_file.path, path.savePath + '/' + saveFilename);
-  rows = await file.uploadFile(rows.id, _pDir, filename, saveFilename, _file.size);
+  rows = await file.uploadFile(rows, _pDir, filename, saveFilename, _file.size);
   if (rows instanceof Error) {
     fs.unlink(path.savePath + '/' + saveFilename, (err) => { if (err) throw err; });
     return res.json({
@@ -204,7 +204,7 @@ router.get('/rename', async (req, res) => {
     });
   }
 
-  rows = await file.renameFile(rows.id, _newName, _id);
+  rows = await file.renameFile(rows, _newName, _id);
   if (rows instanceof Error) {
     return res.json({
       status: 'forbidden',
@@ -245,7 +245,7 @@ router.get('/getfile', async (req, res) => {
       info: rows.message
     });
   }
-  rows = await file.getFile(_id, rows.id);
+  rows = await file.getFile(_id, rows);
   if (rows instanceof Error) {
     return res.json({
       status: 'forbidden',
