@@ -7,7 +7,6 @@ app.use('/user', routerUser);
 app.use('/file', routerFile);
 
 app.listen(3000, () => {
-  console.log();
 });
 
 const gracefulShutdown = function () {

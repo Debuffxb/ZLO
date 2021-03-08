@@ -245,7 +245,7 @@ router.get('/getfile', async (req, res) => {
       info: rows.message
     });
   }
-  rows = file.getFile(_id, rows.id);
+  rows = await file.getFile(_id, rows.id);
   if (rows instanceof Error) {
     return res.json({
       status: 'forbidden',
