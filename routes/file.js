@@ -119,7 +119,7 @@ router.post('/upload', multipart(), async (req, res) => {
     });
   } catch (err) {
     if (fs.existsSync(path.savePath + '/' + saveFilename)) {
-      fs.unlink(path.savePath + '/' + saveFilename, (err) => { if (err) throw err; });
+      fs.unlinkSync(path.savePath + '/' + saveFilename);
     }
     return res.json({
       status: 'forbidden',
