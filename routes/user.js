@@ -32,7 +32,7 @@ router.get('/login', async (req, res) => {
     });
   }
   try {
-    const _t = user.login(req.query.username, req.query.password);
+    const _t = await user.login(req.query.username, req.query.password);
     res.json({
       status: 'success',
       token: _t
