@@ -17,254 +17,164 @@ const getString = (length) => {
   return str;
 };
 
-router.get('/filelist', async (req, res) => {
-  const _t = req.headers['x-access-token'];
-  const _pDir = req.query.p_dir || 0;
-  if (!_t) {
+router.use(async (req, res, next) => {
+  try {
+    const _t = req.headers['x-access-token'] || req.query.token;
+    if (!_t) {
+      return res.json({
+        status: 'forbidden',
+        info: '无权限'
+      });
+    }
+    req.query.user_id = await token.verifyToken(_t);
+  } catch (err) {
     return res.json({
       status: 'forbidden',
-      info: '鉴权失效'
+      info: err.message
     });
   }
+  next();
+});
 
-  let rows = await token.verifyToken(_t);
-  if (rows instanceof Error) {
+router.get('/filelist', async (req, res) => {
+  const _pDir = req.query.p_dir || 0;
+  const UserID = req.query.user_id;
+  try {
+    const rows = await file.selectFiles(UserID, _pDir);
+    res.json({
+      status: 'success',
+      data: rows
+    });
+  } catch (err) {
     return res.json({
       status: 'forbidden',
-      info: rows.message
+      info: err.message
     });
   }
-  rows = await file.selectFiles(rows, _pDir);
-  if (rows instanceof Error) {
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-  res.json({
-    status: 'success',
-    data: rows
-  });
 });
 
 router.get('/delete', async (req, res) => {
-  const _t = req.headers['x-access-token'];
   const _id = req.query.id;
-  if (!_t) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
-    });
-  }
+  const UserID = req.query.user_id;
   if (!_id) {
     return res.json({
       status: 'forbidden',
       info: '缺少参数'
     });
   }
-
-  let rows = await token.verifyToken(_t);
-  if (rows instanceof Error) {
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-
-  rows = await file.deleteFile(rows, _id);
-  if (rows instanceof Error) {
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-  if (rows.affectedRows !== 0) {
+  try {
+    await file.deleteFile(UserID, _id);
     return res.json({
       status: 'success'
     });
+  } catch (err) {
+    return res.json({
+      status: 'forbidden',
+      info: err.message
+    });
   }
-  return res.json({
-    status: 'forbidden',
-    info: '无效文件ID'
-  });
 });
 
 router.get('/createdir', async (req, res) => {
-  const _t = req.headers['x-access-token'];
   const _name = req.query.name;
   const _pDir = req.query.p_dir;
-  if (!_t) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
-    });
-  }
+  const UserID = req.query.user_id;
   if (!(_name && _pDir)) {
     return res.json({
       status: 'forbidden',
       info: '缺少参数'
     });
   }
-
-  let rows = await token.verifyToken(_t);
-  if (rows instanceof Error) {
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-  rows = await file.createDir(rows, _pDir, _name);
-
-  if (rows instanceof Error) {
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-  if (rows.affectedRows !== 0) {
+  try {
+    await file.createDir(UserID, _pDir, _name);
     return res.json({
       status: 'success'
     });
+  } catch (err) {
+    return res.json({
+      status: 'forbidden',
+      info: err.message
+    });
   }
-  return res.json({
-    status: 'forbidden',
-    info: '无效文件ID'
-  });
 });
 
 router.post('/upload', multipart(), async (req, res) => {
-  const _t = req.headers['x-access-token'];
   const _file = req.files.file;
   const _pDir = req.body.p_dir;
-  if (!_t) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
-    });
-  }
+  const UserID = req.query.user_id;
   if (!(_file && _pDir)) {
     return res.json({
       status: 'forbidden',
       info: '缺少参数'
     });
   }
-
-  let rows = await token.verifyToken(_t);
-  if (rows instanceof Error) {
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-  const filename = _file.originalFilename;
-  const saveFilename = rows.id + '-' + Date.now() + '-' + getString(10) + filename.substring(filename.lastIndexOf('.'));
-  fs.renameSync(_file.path, path.savePath + '/' + saveFilename);
-  rows = await file.uploadFile(rows, _pDir, filename, saveFilename, _file.size);
-  if (rows instanceof Error) {
-    fs.unlink(path.savePath + '/' + saveFilename, (err) => { if (err) throw err; });
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-  if (rows.affectedRows !== 0) {
+  let saveFilename;
+  try {
+    const filename = _file.originalFilename;
+    saveFilename = UserID + '-' + Date.now() + '-' + getString(10) + filename.substring(filename.lastIndexOf('.'));
+    fs.renameSync(_file.path, path.savePath + '/' + saveFilename);
+    await file.uploadFile(UserID, _pDir, filename, saveFilename, _file.size);
     return res.json({
       status: 'success'
     });
+  } catch (err) {
+    if (fs.existsSync(path.savePath + '/' + saveFilename)) {
+      fs.unlink(path.savePath + '/' + saveFilename, (err) => { if (err) throw err; });
+    }
+    return res.json({
+      status: 'forbidden',
+      info: err.message
+    });
   }
-  fs.unlink(path.savePath + '/' + saveFilename, (err) => { if (err) throw err; });
-  return res.json({
-    status: 'forbidden',
-    info: '无效文件ID'
-  });
 });
 
 router.get('/rename', async (req, res) => {
-  const _t = req.headers['x-access-token'];
   const _id = req.query.id;
   const _newName = req.query.new_name;
-  if (!_t) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
-    });
-  }
+  const UserID = req.query.user_id;
   if (!(_id && _newName)) {
     return res.json({
       status: 'forbidden',
       info: '缺少参数'
     });
   }
-
-  let rows = await token.verifyToken(_t);
-  if (rows instanceof Error) {
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-
-  rows = await file.renameFile(rows, _newName, _id);
-  if (rows instanceof Error) {
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-  if (rows.affectedRows !== 0) {
+  try {
+    await file.renameFile(UserID, _newName, _id);
     return res.json({
       status: 'success'
     });
+  } catch (err) {
+    return res.json({
+      status: 'forbidden',
+      info: err.message
+    });
   }
-  return res.json({
-    status: 'forbidden',
-    info: '无效文件ID'
-  });
 });
 
 router.get('/getfile', async (req, res) => {
-  const _t = req.query.token;
   const _id = req.query.id;
-  if (!_t) {
-    return res.json({
-      status: 'forbidden',
-      info: '鉴权失效'
-    });
-  }
+  const UserID = req.query.user_id;
   if (!(_id)) {
     return res.json({
       status: 'forbidden',
       info: '缺少参数'
     });
   }
-
-  let rows = await token.verifyToken(_t);
-  if (rows instanceof Error) {
+  try {
+    const rows = await file.getFile(_id, UserID);
+    const header = {
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment;filename=${encodeURI(rows[0].name)}`
+    };
+    res.writeHead(200, header);
+    const fileStream = fs.createReadStream(path.savePath + '/' + rows[0].save_name);
+    fileStream.pipe(res);
+  } catch (err) {
     return res.json({
       status: 'forbidden',
-      info: rows.message
+      info: err.message
     });
   }
-  rows = await file.getFile(_id, rows);
-  if (rows instanceof Error) {
-    return res.json({
-      status: 'forbidden',
-      info: rows.message
-    });
-  }
-  if (rows.length === 0) {
-    return res.json({
-      status: 'forbidden',
-      info: '没有这个文件'
-    });
-  }
-  const header = {
-    'Content-Type': 'application/octet-stream',
-    'Content-Disposition': `attachment;filename=${encodeURI(rows[0].name)}`
-  };
-  res.writeHead(200, header);
-  const fileStream = fs.createReadStream(path.savePath + '/' + rows[0].save_name);
-  fileStream.pipe(res);
 });
 
 module.exports = router;
