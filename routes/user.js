@@ -46,7 +46,7 @@ router.get('/login', async (req, res) => {
 });
 
 router.get('/editpassword', preCheck, async (req, res) => {
-  const UserID = req.query.user_id;
+  const userID = req.query.user_id;
   if (!(req.query.username && req.query.new_password)) {
     return res.json({
       status: 'forbidden',
@@ -54,8 +54,8 @@ router.get('/editpassword', preCheck, async (req, res) => {
     });
   }
   try {
-    await user.updatePassword(UserID, req.query.new_password);
-    token.updateToken(UserID);
+    await user.updatePassword(userID, req.query.new_password);
+    token.updateToken(userID);
     return res.json({
       status: 'success'
     });

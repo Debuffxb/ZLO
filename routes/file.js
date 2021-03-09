@@ -38,9 +38,9 @@ router.use(async (req, res, next) => {
 
 router.get('/filelist', async (req, res) => {
   const _pDir = req.query.p_dir || 0;
-  const UserID = req.query.user_id;
+  const userID = req.query.user_id;
   try {
-    const rows = await file.selectFiles(UserID, _pDir);
+    const rows = await file.selectFiles(userID, _pDir);
     res.json({
       status: 'success',
       data: rows
@@ -55,7 +55,7 @@ router.get('/filelist', async (req, res) => {
 
 router.get('/delete', async (req, res) => {
   const _id = req.query.id;
-  const UserID = req.query.user_id;
+  const userID = req.query.user_id;
   if (!_id) {
     return res.json({
       status: 'forbidden',
@@ -63,7 +63,7 @@ router.get('/delete', async (req, res) => {
     });
   }
   try {
-    await file.deleteFile(UserID, _id);
+    await file.deleteFile(userID, _id);
     return res.json({
       status: 'success'
     });
@@ -78,7 +78,7 @@ router.get('/delete', async (req, res) => {
 router.get('/createdir', async (req, res) => {
   const _name = req.query.name;
   const _pDir = req.query.p_dir;
-  const UserID = req.query.user_id;
+  const userID = req.query.user_id;
   if (!(_name && _pDir)) {
     return res.json({
       status: 'forbidden',
@@ -86,7 +86,7 @@ router.get('/createdir', async (req, res) => {
     });
   }
   try {
-    await file.createDir(UserID, _pDir, _name);
+    await file.createDir(userID, _pDir, _name);
     return res.json({
       status: 'success'
     });
@@ -101,7 +101,7 @@ router.get('/createdir', async (req, res) => {
 router.post('/upload', multipart(), async (req, res) => {
   const _file = req.files.file;
   const _pDir = req.body.p_dir;
-  const UserID = req.query.user_id;
+  const userID = req.query.user_id;
   if (!(_file && _pDir)) {
     return res.json({
       status: 'forbidden',
@@ -111,9 +111,9 @@ router.post('/upload', multipart(), async (req, res) => {
   let saveFilename;
   try {
     const filename = _file.originalFilename;
-    saveFilename = UserID + '-' + Date.now() + '-' + getString(10) + filename.substring(filename.lastIndexOf('.'));
+    saveFilename = userID + '-' + Date.now() + '-' + getString(10) + filename.substring(filename.lastIndexOf('.'));
     fs.renameSync(_file.path, path.savePath + '/' + saveFilename);
-    await file.uploadFile(UserID, _pDir, filename, saveFilename, _file.size);
+    await file.uploadFile(userID, _pDir, filename, saveFilename, _file.size);
     return res.json({
       status: 'success'
     });
@@ -131,7 +131,7 @@ router.post('/upload', multipart(), async (req, res) => {
 router.get('/rename', async (req, res) => {
   const _id = req.query.id;
   const _newName = req.query.new_name;
-  const UserID = req.query.user_id;
+  const userID = req.query.user_id;
   if (!(_id && _newName)) {
     return res.json({
       status: 'forbidden',
@@ -139,7 +139,7 @@ router.get('/rename', async (req, res) => {
     });
   }
   try {
-    await file.renameFile(UserID, _newName, _id);
+    await file.renameFile(userID, _newName, _id);
     return res.json({
       status: 'success'
     });
@@ -153,7 +153,7 @@ router.get('/rename', async (req, res) => {
 
 router.get('/getfile', async (req, res) => {
   const _id = req.query.id;
-  const UserID = req.query.user_id;
+  const userID = req.query.user_id;
   if (!(_id)) {
     return res.json({
       status: 'forbidden',
@@ -161,7 +161,7 @@ router.get('/getfile', async (req, res) => {
     });
   }
   try {
-    const rows = await file.getFile(_id, UserID);
+    const rows = await file.getFile(userID, _id);
     const header = {
       'Content-Type': 'application/octet-stream',
       'Content-Disposition': `attachment;filename=${encodeURI(rows[0].name)}`
