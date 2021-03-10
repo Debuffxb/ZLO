@@ -167,8 +167,12 @@ router.get('/getfile', async (req, res) => {
       'Content-Disposition': `attachment;filename=${encodeURI(rows[0].name)}`
     };
     res.writeHead(200, header);
-    const fileStream = fs.createReadStream(path.savePath + '/' + rows[0].save_name);
-    fileStream.pipe(res);
+    fs.createReadStream(path.savePath + '/' + rows[0].save_name).pipe(res).on('error', (err) => {
+      res.json({
+        status: 'forbidden',
+        info: err.message
+      });
+    });
   } catch (err) {
     return res.json({
       status: 'forbidden',
