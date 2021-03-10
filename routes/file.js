@@ -166,7 +166,6 @@ router.get('/getfile', async (req, res) => {
       'Content-Type': 'application/octet-stream',
       'Content-Disposition': `attachment;filename=${encodeURI(rows[0].name)}`
     };
-    res.writeHead(200, header);
     const rs = fs.createReadStream(path.savePath + '/' + rows[0].save_name)
       .on('error', (err) => {
         res.json({
@@ -175,6 +174,7 @@ router.get('/getfile', async (req, res) => {
         });
       })
       .on('open', () => {
+        res.writeHead(200, header);
         rs.pipe(res);
       });
   } catch (err) {
